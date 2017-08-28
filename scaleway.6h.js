@@ -1,35 +1,48 @@
 #!/usr/bin/env /usr/local/bin/node
 
-const http = require('http');
+//const http = require('http');
 const fs = require('fs');
-const path = require('path');
+//const path = require('path');
 const exec = require('child_process').exec;
 
-const REGION = 'ams';
-const BASEURL = 'https://cp-'+REGION+'1.scaleway.com/';
-var APIKEY;
-
+// Icons:
+const SCALEWAY_ICON = '⚖';
+const PARIS = '🇫🇷';
+const AMSTERDAM = '🇳🇱';
 const RUNNING = '🔵';
 const STOPPED = '🔴';
-const SCALEWAY_ICON = '⚖';
 
+const REGIONS = {
+	'par1': PARIS,
+	'ams1': AMSTERDAM
+};
+
+var APIKEY;
+
+
+outputBefore();
 
 // Start by reading in the API key file:
 fs.readFile(__dirname +'/apikey', 'utf8', function (err, data) {
 	if (err) { throw err; }
 	APIKEY = data.trim();
-	doCurl();
+	// Make one request for each region:
+	Object.keys(REGIONS).forEach(region => {
+		doCurl(region);
+	});
 });
 
 // Perform curl request to Scaleway API:
-function doCurl() {
+function doCurl(region) {
 	var resource = 'servers';
 	//images
 	//volumes
 	//users/{user_id}
 	//snapshots
 
-	var curl_scaleway = `curl -H 'X-Auth-Token: ${APIKEY}' -H 'Content-Type: application/json' --url ${BASEURL}${resource}`;
+	const scalewayApiUrl = 'https://cp-'+region+'.scaleway.com/';
+	const headers = `-H 'X-Auth-Token: ${APIKEY}' -H 'Content-Type: application/json'`;
+	const curl_scaleway = `curl ${headers} --url ${scalewayApiUrl}${resource}`;
 
 	exec(curl_scaleway, (error, stdout, stderr) => {
 	    if (error) {
@@ -37,26 +50,33 @@ function doCurl() {
 	        throw error;
 	    }
 		var response = JSON.parse(stdout);
+		//console.warn(response);
 
-		output(response);
+		outputServers(response, region);
 	});
 }
 
 // Render the menu:
-function output(response) {
-	console.log(SCALEWAY_ICON);
-	console.log("---");
-	//console.warn(response);
-	console.log("Servers");
+function outputServers(response, region) {
 	response.servers.forEach(server => {
 		var icon = (server.state == 'running') ? RUNNING : STOPPED;
-		console.log(icon, '['+server.commercial_type+']', server.hostname);
+		console.log(REGIONS[region], icon, '['+server.commercial_type+']', server.hostname);
 		console.log("--"+server.image.name);
 		console.log("--"+server.volumes[0].name);
 		console.log("--"+server.state, ',', server.state_detail);
 		console.log("--"+server.private_ip, 'private');
 		console.log("--"+server.public_ip.address, 'public');
 	});
+	if (region == 'ams1') outputAfter();
+}
+
+function outputBefore() {
+	console.log(SCALEWAY_ICON);
+	console.log("---");
+	console.log("Servers");
+}
+
+function outputAfter() {
 	// Menubar afters:
 	console.log("Options");
 	console.log("--Open script file | bash='${EDITOR:-nano}' param1="+__filename);
