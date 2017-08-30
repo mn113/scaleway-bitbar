@@ -42,7 +42,7 @@ function doCurl(region) {
 
 	const scalewayApiUrl = 'https://cp-'+region+'.scaleway.com/';
 	const headers = `-H 'X-Auth-Token: ${APIKEY}' -H 'Content-Type: application/json'`;
-	const curl_scaleway = `curl ${headers} --url ${scalewayApiUrl}${resource}`;
+	const curl_scaleway = `curl ${headers} --silent --url ${scalewayApiUrl}${resource}`;
 
 	exec(curl_scaleway, (error, stdout, stderr) => {
 	    if (error) {
